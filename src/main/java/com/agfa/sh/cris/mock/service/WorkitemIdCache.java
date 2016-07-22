@@ -140,7 +140,11 @@ public class WorkitemIdCache {
 		Integer prevCount = prevResultCounts.get(workitemName);
 		if (prevCount == null) prevCount = DEFAULT_QUEUE_CAPACITY;
 		int currentSize = queue.size();
-		if (currentSize < prevCount/2) {
+		if (logger.isDebugEnabled()){
+			logger.debug("Current Size => "+currentSize+", previous size => "+prevCount);
+		}
+		
+		if (currentSize <= prevCount/2) {
 			Long minWorkitemId = maxWorkitemIds.get(workitemName);
 			if (minWorkitemId == null) minWorkitemId = -1L;
 			final BlockingQueue<Long> q = queue;
@@ -148,11 +152,12 @@ public class WorkitemIdCache {
 			cacheRefresher.notifiy(workitemName, minWorkitemId, new WorkitemIdCacheRefreshListener() {
 				@Override
 				public void onCompleted(String key, List<Long> workitemIds) {
-					maxWorkitemIds.put(workitemName, workitemIds.get(workitemIds.size()-1));
-					prevResultCounts.put(workitemName, workitemIds.size());
+					int workitemCount = workitemIds.size();
+					maxWorkitemIds.put(workitemName, workitemIds.get(workitemCount-1));
+					prevResultCounts.put(workitemName, workitemCount);
 					q.addAll(workitemIds);
 					if (logger.isInfoEnabled()) {
-						logger.info("Succeeded to retrieve workitem ids of [ "+key+" ]");
+						logger.info("Succeeded to retrieve "+workitemCount+" workitem ids of [ "+key+" ]");
 					}
 				}
 
@@ -165,7 +170,7 @@ public class WorkitemIdCache {
 		
 		Long result = -1L;
 		try {
-			result = queue.poll(5L, TimeUnit.SECONDS);
+			result = queue.poll(10L, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
