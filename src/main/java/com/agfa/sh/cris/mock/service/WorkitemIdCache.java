@@ -64,9 +64,9 @@ public class WorkitemIdCache {
 						Sort sort =  new Sort(Direction.ASC, "workitemId");
 						Pageable pageable = new PageRequest(0, DEFAULT_MAX_RESULTS, sort);
 						Page<ActiveTask> tasks = worklistRepository.findRelativeTasks(DEFAULT_DOMAIN, workitemName, minWorkitemId, pageable);
-						List<Long> workitemIds = new ArrayList<Long>();
+						List<ActiveTask> workitemIds = new ArrayList<ActiveTask>();
 						for(ActiveTask task : tasks) {
-							workitemIds.add(task.getWorkitemId());
+							workitemIds.add(task);
 						}
 						
 						if (workitemIds.isEmpty()) {
@@ -111,16 +111,16 @@ public class WorkitemIdCache {
 	}
 	
 	interface WorkitemIdCacheRefreshListener {
-		void onCompleted(String key, List<Long> workitemIds);
+		void onCompleted(String key, List<ActiveTask> workitemIds);
 		void onError(String key, String errorMsg, Exception rootCause);
 	}
 	
 	private final static String DEFAULT_DOMAIN = "radiology-domain";
-	private final static int DEFAULT_MAX_RESULTS = 200;
+	private final static int DEFAULT_MAX_RESULTS = 400;
 	private final static int DEFAULT_QUEUE_CAPACITY = DEFAULT_MAX_RESULTS + 2;
 	private final static Logger logger = LoggerFactory.getLogger(WorkitemIdCache.class);
 	
-	private final ConcurrentHashMap<String, BlockingQueue<Long>> containers = new ConcurrentHashMap<String, BlockingQueue<Long>>();
+	private final ConcurrentHashMap<String, BlockingQueue<ActiveTask>> containers = new ConcurrentHashMap<String, BlockingQueue<ActiveTask>>();
 	private final ConcurrentHashMap<String, Long> maxWorkitemIds = new ConcurrentHashMap<String, Long>();
 	private final ConcurrentHashMap<String, Integer> prevResultCounts = new ConcurrentHashMap<String, Integer>();
 	
@@ -129,11 +129,11 @@ public class WorkitemIdCache {
 	@Autowired
 	private WorklistRepository worklistRepository;
 	
-	public Long getNextValue(final String workitemName) {
-		BlockingQueue<Long> queue = containers.get(workitemName);
+	public ActiveTask getNextValue(final String workitemName) {
+		BlockingQueue<ActiveTask> queue = containers.get(workitemName);
 		if (queue == null) {
-			queue = new ArrayBlockingQueue<Long>(DEFAULT_QUEUE_CAPACITY * 2);
-			BlockingQueue<Long> oldQueue = containers.putIfAbsent(workitemName, queue);
+			queue = new ArrayBlockingQueue<ActiveTask>(DEFAULT_QUEUE_CAPACITY * 2);
+			BlockingQueue<ActiveTask> oldQueue = containers.putIfAbsent(workitemName, queue);
 			if (oldQueue != null) queue = oldQueue;
  		}
 		
@@ -147,13 +147,13 @@ public class WorkitemIdCache {
 		if (currentSize <= prevCount/2) {
 			Long minWorkitemId = maxWorkitemIds.get(workitemName);
 			if (minWorkitemId == null) minWorkitemId = -1L;
-			final BlockingQueue<Long> q = queue;
+			final BlockingQueue<ActiveTask> q = queue;
 
 			cacheRefresher.notifiy(workitemName, minWorkitemId, new WorkitemIdCacheRefreshListener() {
 				@Override
-				public void onCompleted(String key, List<Long> workitemIds) {
+				public void onCompleted(String key, List<ActiveTask> workitemIds) {
 					int workitemCount = workitemIds.size();
-					maxWorkitemIds.put(workitemName, workitemIds.get(workitemCount-1));
+					maxWorkitemIds.put(workitemName, workitemIds.get(workitemCount-1).getWorkitemId());
 					prevResultCounts.put(workitemName, workitemCount);
 					q.addAll(workitemIds);
 					if (logger.isInfoEnabled()) {
@@ -168,13 +168,13 @@ public class WorkitemIdCache {
 			});
 		}
 		
-		Long result = -1L;
+		ActiveTask result = null;
 		try {
 			result = queue.poll(10L, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		if (result == null) result = -1L;
+		
 		return result;
 	}
 	

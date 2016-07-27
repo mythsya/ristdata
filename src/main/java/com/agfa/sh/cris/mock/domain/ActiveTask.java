@@ -28,6 +28,27 @@ public class ActiveTask implements Serializable{
 	@Column(name = "actid")
 	private String actId;
 	
+	@Column(name="modalitytypebizid")
+	private String modalityTypeCode;
+	
+	@Column(name = "observationprimaryid")
+	private String accessionNumber;
+	
+	@Column(name="patientclassbizid")
+	private String patientClassCode;
+	
+	@Column(name="patientsexcode")
+	private String patientSexCode;
+	
+	@Column(name = "patientprimaryid")
+	private String patientId;
+	
+	@Column(name = "taskinstanceid")
+	private Long workitemId;
+	
+	@Column(name = "taskinstancename")
+	private String workitemName;
+	
 	public String getId() {
 		return id;
 	}
@@ -108,25 +129,6 @@ public class ActiveTask implements Serializable{
 		this.workitemName = workitemName;
 	}
 
-	@Column(name="modalitytypebizid")
-	private String modalityTypeCode;
-	
-	@Column(name = "observationprimaryid")
-	private String accessionNumber;
-	
-	@Column(name="patientclassbizid")
-	private String patientClassCode;
-	
-	@Column(name="patientsexcode")
-	private String patientSexCode;
-	
-	@Column(name = "patientprimaryid")
-	private String patientId;
-	
-	@Column(name = "taskinstanceid")
-	private Long workitemId;
-	
-	@Column(name = "taskinstancename")
-	private String workitemName;
+
 	
 }

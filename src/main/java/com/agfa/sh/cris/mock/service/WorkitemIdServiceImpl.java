@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.agfa.sh.cris.mock.domain.ActiveTask;
+
 @Component("workitemIdService")
 @Transactional
 public class WorkitemIdServiceImpl implements WorkitemIdService {
@@ -14,62 +16,62 @@ public class WorkitemIdServiceImpl implements WorkitemIdService {
 	private WorkitemIdCache workitemIdCache;
 
 	@Override
-	public long getNextToRegister() {
+	public ActiveTask getNextToRegister() {
 		return workitemIdCache.getNextValue("ris.register");
 	}
 
 	@Override
-	public long getNextToCheckin() {
+	public ActiveTask getNextToCheckin() {
 		return workitemIdCache.getNextValue("ris.checkin");
 	}
 
 	@Override
-	public long getNextToInjection() {
+	public ActiveTask getNextToInjection() {
 		return workitemIdCache.getNextValue("ris.injection");
 	}
 
 	@Override
-	public long getNextToExamination() {
+	public ActiveTask getNextToExamination() {
 		return workitemIdCache.getNextValue("ris.examination");
 	}
 
 	@Override
-	public long getNextToReconstruct() {
+	public ActiveTask getNextToReconstruct() {
 		return workitemIdCache.getNextValue("ris.reconstructing");
 	}
 
 	@Override
-	public long getNextToReport() {
+	public ActiveTask getNextToReport() {
 		return workitemIdCache.getNextValue("ris.reporting.interpretation");
 	}
 
 	@Override
-	public long getNextToVerification() {
+	public ActiveTask getNextToVerification() {
 		return workitemIdCache.getNextValue("ris.reporting.verification");
 	}
 
 	@Override
-	public long getNextToAdvancedVerification() {
+	public ActiveTask getNextToAdvancedVerification() {
 		return workitemIdCache.getNextValue("ris.reporting.verification.advanced");
 	}
 
 	@Override
-	public long getNextToPauseReport() {
+	public ActiveTask getNextToPauseReport() {
 		return workitemIdCache.getNextValue("ris.reporting.renew");
 	}
 
 	@Override
-	public long getNextToPrint() {
+	public ActiveTask getNextToPrint() {
 		return workitemIdCache.getNextValue("ris.reporting.printing");
 	}
 
 	@Override
-	public long getNextToDelivery() {
+	public ActiveTask getNextToDelivery() {
 		return workitemIdCache.getNextValue("ris.distribution");
 	}
 
 	@Override
-	public long getNextToPrintDelivery() {
+	public ActiveTask getNextToPrintDelivery() {
 		return workitemIdCache.getNextValue("ris.distribution-print");
 	}
 

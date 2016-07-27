@@ -1,28 +1,30 @@
 package com.agfa.sh.cris.mock.service;
 
+import com.agfa.sh.cris.mock.domain.ActiveTask;
+
 public interface WorkitemIdService {
 
-	long getNextToRegister();
+	ActiveTask getNextToRegister();
 	
-	long getNextToCheckin();
+	ActiveTask getNextToCheckin();
 	
-	long getNextToInjection();
+	ActiveTask getNextToInjection();
 	
-	long getNextToExamination();
+	ActiveTask getNextToExamination();
 	
-	long getNextToReconstruct();
+	ActiveTask getNextToReconstruct();
 	
-	long getNextToReport();
+	ActiveTask getNextToReport();
 	
-	long getNextToVerification();
+	ActiveTask getNextToVerification();
 	
-	long getNextToAdvancedVerification();
+	ActiveTask getNextToAdvancedVerification();
 	
-	long getNextToPauseReport();
+	ActiveTask getNextToPauseReport();
 	
-	long getNextToPrint();
+	ActiveTask getNextToPrint();
 	
-	long getNextToDelivery();
+	ActiveTask getNextToDelivery();
 	
-	long getNextToPrintDelivery();
+	ActiveTask getNextToPrintDelivery();
 }
