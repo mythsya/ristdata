@@ -22,9 +22,16 @@ public class WorkitemJson {
 	public WorkitemJson() {}
 	
 	public WorkitemJson(ActiveTask t) {
-		this.workitemId = t.getWorkitemId()+"";
-		this.patientId = t.getPatientId();
-		this.actId = t.getActId();
-		this.accessionNumber = t.getAccessionNumber();
+		if (t == null) {
+			this.workitemId = "";
+			this.patientId = "";
+			this.actId = "";
+			this.accessionNumber = "";
+		} else {
+			this.workitemId = t.getWorkitemId()+"";
+			this.patientId = t.getPatientId();
+			this.actId = t.getActId();
+			this.accessionNumber = t.getAccessionNumber();
+		}
 	}
 }

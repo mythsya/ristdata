@@ -170,7 +170,7 @@ public class WorkitemIdCache {
 		
 		ActiveTask result = null;
 		try {
-			result = queue.poll(10L, TimeUnit.SECONDS);
+			result = queue.poll(2L, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
