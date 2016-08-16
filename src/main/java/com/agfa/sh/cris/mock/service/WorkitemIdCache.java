@@ -28,8 +28,9 @@ public class WorkitemIdCache {
 		private final ExecutorService executors = Executors.newFixedThreadPool(20);
 		private final ExecutorService executorsCK = Executors.newFixedThreadPool(10);
 		private final ConcurrentHashMap<String, String> keys = new ConcurrentHashMap<String, String>();
+		private final ConcurrentHashMap<String, Long> maxWorkitemIds = new ConcurrentHashMap<String, Long>();
 		
-		void init() {
+		synchronized void init() {
 			
 		}
 		
@@ -44,13 +45,17 @@ public class WorkitemIdCache {
 
 		}
 		
-		void notifiy(final String workitemName, final long minWorkitemId, final WorkitemIdCacheRefreshListener listener) {
+		synchronized void notifiy(final String workitemName, final WorkitemIdCacheRefreshListener listener) {
 			if (isDuplicated(workitemName)) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Workitemid refreshing job of [ "+workitemName+" ] is running, duplicated notification ignored. ");
 				}
 				return ;
 			}
+			
+			Long minwi = maxWorkitemIds.get(workitemName);
+			if (minwi == null) minwi = -1L;
+			final Long minWorkitemId = minwi;
 			
 			executors.submit(new Runnable() {
 				@Override
@@ -67,11 +72,13 @@ public class WorkitemIdCache {
 						List<ActiveTask> workitemIds = new ArrayList<ActiveTask>();
 						for(ActiveTask task : tasks) {
 							workitemIds.add(task);
-						}
+						}						
 						
 						if (workitemIds.isEmpty()) {
+							maxWorkitemIds.put(workitemName, -1L);
 							listener.onError(workitemName, "data not found", null);
 						} else {
+							maxWorkitemIds.put(workitemName, workitemIds.get(workitemIds.size()-1).getWorkitemId());
 							listener.onCompleted(workitemName, workitemIds);
 						}
 						
@@ -98,7 +105,7 @@ public class WorkitemIdCache {
 			});
 		}
 		
-		void destory() {
+		synchronized void destory() {
 			try {
 				executors.shutdown();
 			} catch(Exception e) {				
@@ -121,9 +128,7 @@ public class WorkitemIdCache {
 	private final static Logger logger = LoggerFactory.getLogger(WorkitemIdCache.class);
 	
 	private final ConcurrentHashMap<String, BlockingQueue<ActiveTask>> containers = new ConcurrentHashMap<String, BlockingQueue<ActiveTask>>();
-	private final ConcurrentHashMap<String, Long> maxWorkitemIds = new ConcurrentHashMap<String, Long>();
-	private final ConcurrentHashMap<String, Integer> prevResultCounts = new ConcurrentHashMap<String, Integer>();
-	
+	private final ConcurrentHashMap<String, Integer> prevResultCounts = new ConcurrentHashMap<String, Integer>();	
 	private final WorkitemIdCacheRefresher cacheRefresher = new WorkitemIdCacheRefresher();
 	
 	@Autowired
@@ -137,36 +142,7 @@ public class WorkitemIdCache {
 			if (oldQueue != null) queue = oldQueue;
  		}
 		
-		Integer prevCount = prevResultCounts.get(workitemName);
-		if (prevCount == null) prevCount = DEFAULT_QUEUE_CAPACITY;
-		int currentSize = queue.size();
-		if (logger.isDebugEnabled()){
-			logger.debug("Current Size => "+currentSize+", previous size => "+prevCount);
-		}
-		
-		if (currentSize <= prevCount/2) {
-			Long minWorkitemId = maxWorkitemIds.get(workitemName);
-			if (minWorkitemId == null) minWorkitemId = -1L;
-			final BlockingQueue<ActiveTask> q = queue;
-
-			cacheRefresher.notifiy(workitemName, minWorkitemId, new WorkitemIdCacheRefreshListener() {
-				@Override
-				public void onCompleted(String key, List<ActiveTask> workitemIds) {
-					int workitemCount = workitemIds.size();
-					maxWorkitemIds.put(workitemName, workitemIds.get(workitemCount-1).getWorkitemId());
-					prevResultCounts.put(workitemName, workitemCount);
-					q.addAll(workitemIds);
-					if (logger.isInfoEnabled()) {
-						logger.info("Succeeded to retrieve "+workitemCount+" workitem ids of [ "+key+" ]");
-					}
-				}
-
-				@Override
-				public void onError(String key, String errorMsg, Exception rootCause) {
-					logger.warn("Failed to retrieve workitem ids of [ "+key+" ], caused by "+errorMsg);					
-				}
-			});
-		}
+		checkAndTriggerRefresh(queue, workitemName);
 		
 		ActiveTask result = null;
 		try {
@@ -190,5 +166,38 @@ public class WorkitemIdCache {
 			logger.info("============================== bean destroying ===============================");
 		}
 		cacheRefresher.destory();
+	}
+	
+	private void checkAndTriggerRefresh(final BlockingQueue<ActiveTask> queue, final String workitemName) {
+		Integer prevCount = prevResultCounts.get(workitemName);
+		if (prevCount == null) prevCount = DEFAULT_QUEUE_CAPACITY;
+		int currentSize = queue.size();
+		if (logger.isDebugEnabled()){
+			logger.debug("Current Size => "+currentSize+", previous size => "+prevCount);
+		}
+		
+		if (currentSize <= prevCount/4) {
+			if (logger.isInfoEnabled()){
+				logger.info("Current Size => "+currentSize+", previous size => "+prevCount);
+			}
+
+			cacheRefresher.notifiy(workitemName, new WorkitemIdCacheRefreshListener() {
+				@Override
+				public void onCompleted(String key, List<ActiveTask> workitemIds) {
+					int workitemCount = workitemIds.size();
+					
+					prevResultCounts.put(workitemName, workitemCount);
+					queue.addAll(workitemIds);
+					if (logger.isInfoEnabled()) {
+						logger.info("Succeeded to retrieve "+workitemCount+" workitem ids of [ "+key+" ]");
+					}
+				}
+
+				@Override
+				public void onError(String key, String errorMsg, Exception rootCause) {
+					logger.warn("Failed to retrieve workitem ids of [ "+key+" ], caused by "+errorMsg);					
+				}
+			});
+		}
 	}
 }
