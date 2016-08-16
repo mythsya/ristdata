@@ -45,6 +45,14 @@ public class WorkitemIdCache {
 
 		}
 		
+		private Long countRelativeTasks(final String domain, final String workitemName) {
+			return worklistRepository.countRelativeTasks(domain, workitemName);
+		}
+		
+		private boolean farLessThanDefaultMaxResult(int cnt) {
+			return cnt < 40;
+		}
+		
 		synchronized void notifiy(final String workitemName, final WorkitemIdCacheRefreshListener listener) {
 			if (isDuplicated(workitemName)) {
 				if (logger.isDebugEnabled()) {
@@ -72,13 +80,27 @@ public class WorkitemIdCache {
 						List<ActiveTask> workitemIds = new ArrayList<ActiveTask>();
 						for(ActiveTask task : tasks) {
 							workitemIds.add(task);
-						}						
+						}
 						
 						if (workitemIds.isEmpty()) {
 							maxWorkitemIds.put(workitemName, -1L);
 							listener.onError(workitemName, "data not found", null);
 						} else {
-							maxWorkitemIds.put(workitemName, workitemIds.get(workitemIds.size()-1).getWorkitemId());
+							int workitemTotal = workitemIds.size();
+							boolean resetMaxWorkitemId = false;
+							if (farLessThanDefaultMaxResult(workitemTotal)) {
+								long actualTotal = countRelativeTasks(DEFAULT_DOMAIN, workitemName);
+								if (actualTotal > workitemTotal) {
+									logger.warn("Reset next workitem id to -1, as "+actualTotal+" tasks are remaining in db, however "+workitemTotal+" tasks retrieved!");
+									resetMaxWorkitemId = true;
+								}
+							}
+							if (resetMaxWorkitemId) {
+								maxWorkitemIds.put(workitemName, -1L);
+							} else {
+								maxWorkitemIds.put(workitemName, workitemIds.get(workitemTotal-1).getWorkitemId());
+							}
+							
 							listener.onCompleted(workitemName, workitemIds);
 						}
 						
