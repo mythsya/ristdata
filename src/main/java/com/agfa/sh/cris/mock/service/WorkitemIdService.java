@@ -27,4 +27,7 @@ public interface WorkitemIdService {
 	ActiveTask getNextToDelivery();
 	
 	ActiveTask getNextToPrintDelivery();
+	
+	ActiveTask getNextToPrintImage();
+	
 }

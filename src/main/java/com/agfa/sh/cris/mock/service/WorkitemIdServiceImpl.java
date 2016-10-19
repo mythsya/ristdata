@@ -75,4 +75,9 @@ public class WorkitemIdServiceImpl implements WorkitemIdService {
 		return workitemIdCache.getNextValue("ris.distribution-print");
 	}
 
+	@Override
+	public ActiveTask getNextToPrintImage() {
+		return workitemIdCache.getNextValue("ris.image.printing");
+	}
+
 }

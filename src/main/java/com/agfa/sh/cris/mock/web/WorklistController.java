@@ -97,4 +97,11 @@ public class WorklistController {
 	public WorkitemJson toPrintDelivery() {
 		return new WorkitemJson(workitemIdService.getNextToPrintDelivery());
 	}
+	
+	@RequestMapping("/workitem/print-image")
+	@Transactional(readOnly=true)
+	@JsonView(WorkitemJson.WithJsonView.class)
+	public WorkitemJson toPrintImage() {
+		return new WorkitemJson(workitemIdService.getNextToPrintImage());
+	}	
 }
